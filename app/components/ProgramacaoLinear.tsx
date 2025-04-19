@@ -68,11 +68,15 @@ export default function ProgramacaoLinear({
   const [historico, setHistorico] = useState<
     { valores: number[]; objetivo: number }[]
   >([]);
-  const [aba, setAba] = useState<"simulador" | "grafico" | "info">("simulador");
+  const [aba, setAba] = useState<"simulador" | "grafico" | "evolucao">(
+    "simulador"
+  );
   const [animationInProgress, setAnimationInProgress] = useState(false);
 
   // Refs
   const chartRef = useRef<any>(null);
+  const chartEvolucaoRef = useRef<any>(null);
+  const chartVariaveisRef = useRef<any>(null);
 
   // Atribuir cores às variáveis e restrições se não tiverem sido atribuídas
   useEffect(() => {
@@ -208,57 +212,47 @@ export default function ProgramacaoLinear({
     });
   };
 
-  // Preparar dados para o gráfico de radar
+  // Preparar os dados para o gráfico de radar
   const dadosRadar = {
-    labels: restricoes.map((r, i) => `R${i + 1}`),
+    labels: restricoes.map((_, idx) => `Restrição ${idx + 1}`),
     datasets: [
       {
-        label: "Atendimento das Restrições (%)",
+        label: "Atendimento",
         data: calcularPercentualAtendimento(),
-        backgroundColor: "rgba(54, 162, 235, 0.2)",
-        borderColor: "rgba(54, 162, 235, 1)",
-        borderWidth: 2,
-        pointBackgroundColor: restricoes.map(
-          (r) => r.cor || "rgba(54, 162, 235, 1)"
-        ),
+        fill: true,
+        backgroundColor: "rgba(59, 130, 246, 0.2)",
+        borderColor: "rgb(59, 130, 246)",
+        pointBackgroundColor: "rgb(59, 130, 246)",
         pointBorderColor: "#fff",
         pointHoverBackgroundColor: "#fff",
-        pointHoverBorderColor: "rgba(54, 162, 235, 1)",
-        pointLabelFontSize: 14,
-      },
-    ],
-  };
-
-  // Preparar dados para o gráfico de histórico
-  const dadosHistorico = {
-    labels: historico.map((_, i) => i),
-    datasets: [
-      {
-        label: "Valor da Função Objetivo",
-        data: historico.map((item) => item.objetivo),
-        borderColor:
-          funcaoObjetivo.tipo === "max"
-            ? "rgba(54, 162, 235, 1)"
-            : "rgba(255, 99, 132, 1)",
-        backgroundColor:
-          funcaoObjetivo.tipo === "max"
-            ? "rgba(54, 162, 235, 0.2)"
-            : "rgba(255, 99, 132, 0.2)",
-        fill: true,
-        tension: 0.3,
+        pointHoverBorderColor: "rgb(59, 130, 246)",
       },
     ],
   };
 
   // Opções para o gráfico de radar
-  const opcoesRadar = {
+  const opcoesRadar: any = {
+    responsive: true,
     scales: {
       r: {
-        beginAtZero: true,
+        min: 0,
         max: 100,
         ticks: {
           stepSize: 20,
-          showLabelBackdrop: false,
+          callback: function (value: any) {
+            return value + "%";
+          },
+        },
+        pointLabels: {
+          font: {
+            size: 12,
+          },
+        },
+        angleLines: {
+          color: "rgba(0, 0, 0, 0.1)",
+        },
+        grid: {
+          color: "rgba(0, 0, 0, 0.1)",
         },
       },
     },
@@ -266,14 +260,135 @@ export default function ProgramacaoLinear({
       tooltip: {
         callbacks: {
           label: function (context: any) {
-            const label = restricoes[context.dataIndex].descricao;
-            const value = Math.round(context.raw * 10) / 10;
-            return `${label}: ${value}% de atendimento`;
+            return context.dataset.label + ": " + context.raw + "%";
           },
         },
       },
     },
   };
+
+  // Preparar dados para o gráfico de evolução da função objetivo
+  const dadosEvolucao = {
+    labels: historico.map((_, idx) => (idx === 0 ? "Inicial" : `Passo ${idx}`)),
+    datasets: [
+      {
+        label: `Evolução da Função Objetivo (${
+          funcaoObjetivo.tipo === "max" ? "Maximização" : "Minimização"
+        })`,
+        data: historico.map((h) => h.objetivo),
+        fill: true,
+        backgroundColor: "rgba(59, 130, 246, 0.2)",
+        borderColor: "rgb(59, 130, 246)",
+        tension: 0.1,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+      },
+    ],
+  };
+
+  // Opções para o gráfico de evolução
+  const opcoesEvolucao: any = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: "top" as const,
+      },
+      title: {
+        display: true,
+        text: `Evolução da Função Objetivo durante a Otimização`,
+        font: {
+          size: 16,
+        },
+      },
+      tooltip: {
+        callbacks: {
+          label: function (context: any) {
+            return `Valor: ${context.raw.toFixed(2)}`;
+          },
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: funcaoObjetivo.tipo === "min",
+        title: {
+          display: true,
+          text: "Valor da Função Objetivo",
+        },
+      },
+      x: {
+        title: {
+          display: true,
+          text: "Passos de Otimização",
+        },
+      },
+    },
+    animation: {
+      duration: 1000,
+    },
+  };
+
+  // Preparar dados para o gráfico de evolução das variáveis
+  const dadosVariaveis = {
+    labels: historico.map((_, idx) => (idx === 0 ? "Inicial" : `Passo ${idx}`)),
+    datasets: variaveis.map((v, idx) => ({
+      label: v.nome,
+      data: historico.map((h) => h.valores[idx]),
+      backgroundColor: (v.cor || CORES[idx % CORES.length])
+        .replace("rgb", "rgba")
+        .replace(")", ", 0.2)"),
+      borderColor: v.cor || CORES[idx % CORES.length],
+      tension: 0.1,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+    })),
+  };
+
+  // Opções para o gráfico de evolução das variáveis
+  const opcoesVariaveis: any = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: "top" as const,
+      },
+      title: {
+        display: true,
+        text: "Evolução das Variáveis durante a Otimização",
+        font: {
+          size: 16,
+        },
+      },
+      tooltip: {
+        callbacks: {
+          label: function (context: any) {
+            return `${context.dataset.label}: ${context.raw.toFixed(2)}`;
+          },
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: "Valores",
+        },
+      },
+      x: {
+        title: {
+          display: true,
+          text: "Passos de Otimização",
+        },
+      },
+    },
+    animation: {
+      duration: 1000,
+    },
+  };
+
+  // Cores para a região viável e inviável no gráfico 2D
+  const corViavel = "rgba(16, 185, 129, 0.1)"; // Verde
+  const corInviavel = "rgba(239, 68, 68, 0.05)"; // Vermelho
 
   // Tipos de variantes de animação para Framer Motion
   const containerVariants = {
@@ -309,12 +424,12 @@ export default function ProgramacaoLinear({
         className="bg-white rounded-xl shadow-xl overflow-hidden"
       >
         {/* Cabeçalho animado */}
-        <div className="relative overflow-hidden">
+        <div className="relative overflow-hidden pb-8">
           {/* Fundo colorido em ângulo */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary-600 to-secondary-600 skew-y-[-3deg] transform origin-top-left translate-y-[-20%]"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-primary-600 to-secondary-600 skew-y-[-3deg] transform origin-top-left translate-y-[-20%] h-[130%]"></div>
 
           {/* Conteúdo do cabeçalho */}
-          <div className="relative px-8 py-10 text-white">
+          <div className="relative px-8 py-6 text-white">
             <motion.h1
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -327,7 +442,7 @@ export default function ProgramacaoLinear({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.8 }}
-              className="mt-3 text-primary-100 max-w-3xl"
+              className="mt-2 text-primary-100 max-w-3xl"
             >
               {descricao}
             </motion.p>
@@ -337,9 +452,9 @@ export default function ProgramacaoLinear({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.8 }}
-              className="flex flex-wrap gap-3 mt-6"
+              className="flex flex-wrap gap-3 mt-4 relative z-20"
             >
-              <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium inline-flex items-center">
+              <div className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-medium inline-flex items-center shadow-sm">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-4 w-4 mr-1"
@@ -356,7 +471,7 @@ export default function ProgramacaoLinear({
                 </svg>
                 {variaveis.length} variáveis
               </div>
-              <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium inline-flex items-center">
+              <div className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-medium inline-flex items-center shadow-sm">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-4 w-4 mr-1"
@@ -373,7 +488,7 @@ export default function ProgramacaoLinear({
                 </svg>
                 {restricoes.length} restrições
               </div>
-              <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium inline-flex items-center">
+              <div className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-medium inline-flex items-center shadow-sm">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-4 w-4 mr-1"
@@ -395,7 +510,7 @@ export default function ProgramacaoLinear({
         </div>
 
         {/* Corpo */}
-        <div className="p-8">
+        <div className="p-8 relative z-10 bg-white">
           {/* Botões de ação com efeitos de hover e feedback visual */}
           <div className="flex flex-wrap gap-3 mb-8">
             <motion.button
@@ -712,82 +827,40 @@ export default function ProgramacaoLinear({
                 className="mb-8"
               >
                 <div className="bg-gradient-to-r from-blue-50 to-gray-50 rounded-xl border border-blue-200 overflow-hidden">
-                  {/* Abas de navegação */}
-                  <div className="flex border-b border-blue-200">
-                    <button
-                      onClick={() => setAba("simulador")}
-                      className={`py-3 px-6 font-medium flex items-center space-x-2 transition-colors ${
-                        aba === "simulador"
-                          ? "bg-white text-primary-600 border-b-2 border-primary-500"
-                          : "text-gray-600 hover:bg-blue-50"
-                      }`}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                  {/* Navegação entre abas */}
+                  <div className="mb-6">
+                    <div className="bg-white rounded-lg shadow flex justify-center p-1">
+                      <button
+                        onClick={() => setAba("simulador")}
+                        className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+                          aba === "simulador"
+                            ? "bg-primary-500 text-white"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                        />
-                      </svg>
-                      <span>Simulador</span>
-                    </button>
-
-                    <button
-                      onClick={() => setAba("grafico")}
-                      className={`py-3 px-6 font-medium flex items-center space-x-2 transition-colors ${
-                        aba === "grafico"
-                          ? "bg-white text-primary-600 border-b-2 border-primary-500"
-                          : "text-gray-600 hover:bg-blue-50"
-                      }`}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                        Simulador
+                      </button>
+                      <button
+                        onClick={() => setAba("grafico")}
+                        className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+                          aba === "grafico"
+                            ? "bg-primary-500 text-white"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                        />
-                      </svg>
-                      <span>Gráficos</span>
-                    </button>
-
-                    <button
-                      onClick={() => setAba("info")}
-                      className={`py-3 px-6 font-medium flex items-center space-x-2 transition-colors ${
-                        aba === "info"
-                          ? "bg-white text-primary-600 border-b-2 border-primary-500"
-                          : "text-gray-600 hover:bg-blue-50"
-                      }`}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                        Visualização Gráfica
+                      </button>
+                      <button
+                        onClick={() => setAba("evolucao")}
+                        className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+                          aba === "evolucao"
+                            ? "bg-primary-500 text-white"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <span>Informações</span>
-                    </button>
+                        Evolução da Otimização
+                      </button>
+                    </div>
                   </div>
 
                   {/* Conteúdo das abas */}
@@ -1102,7 +1175,7 @@ export default function ProgramacaoLinear({
                             </div>
                           </div>
 
-                          {/* Gráfico de Histórico de Função Objetivo */}
+                          {/* Gráfico de Evolução da Função Objetivo */}
                           <div>
                             <h3 className="font-medium text-lg mb-4 text-gray-700 flex items-center">
                               <svg
@@ -1127,25 +1200,8 @@ export default function ProgramacaoLinear({
                                 <div style={{ height: "300px" }}>
                                   <Chart
                                     type="line"
-                                    data={dadosHistorico}
-                                    options={{
-                                      responsive: true,
-                                      maintainAspectRatio: false,
-                                      scales: {
-                                        y: {
-                                          title: {
-                                            display: true,
-                                            text: "Valor da Função Objetivo",
-                                          },
-                                        },
-                                        x: {
-                                          title: {
-                                            display: true,
-                                            text: "Iteração",
-                                          },
-                                        },
-                                      },
-                                    }}
+                                    data={dadosEvolucao}
+                                    options={opcoesEvolucao}
                                   />
                                 </div>
                               ) : (
@@ -1300,95 +1356,206 @@ export default function ProgramacaoLinear({
                       </div>
                     )}
 
-                    {/* Aba de Informações */}
-                    {aba === "info" && (
-                      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                        <h3 className="font-medium text-xl mb-4 text-gray-800">
-                          Sobre este Problema
-                        </h3>
+                    {/* Aba de Evolução da Otimização */}
+                    {aba === "evolucao" && (
+                      <div>
+                        {historico.length > 1 ? (
+                          <div className="space-y-8">
+                            {/* Gráfico de evolução da função objetivo */}
+                            <div>
+                              <h3 className="font-medium text-lg mb-4 text-gray-700 flex items-center">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-5 w-5 mr-2 text-primary-500"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                                  />
+                                </svg>
+                                Evolução da Função Objetivo
+                              </h3>
 
-                        <div className="space-y-6">
-                          <div>
-                            <h4 className="font-medium text-primary-600 mb-2">
-                              Descrição do Problema
-                            </h4>
-                            <p className="text-gray-700">{descricao}</p>
-                          </div>
-
-                          <div>
-                            <h4 className="font-medium text-primary-600 mb-2">
-                              Variáveis de Decisão
-                            </h4>
-                            <div className="space-y-2">
-                              {variaveis.map((variavel, index) => (
-                                <div key={index} className="flex items-start">
-                                  <div
-                                    className="w-8 h-8 rounded-full flex items-center justify-center text-white font-medium mr-3"
-                                    style={{ backgroundColor: variavel.cor }}
-                                  >
-                                    {index + 1}
-                                  </div>
-                                  <div>
-                                    <div
-                                      className="font-medium"
-                                      style={{ color: variavel.cor }}
-                                    >
-                                      {variavel.nome}
-                                    </div>
-                                    <div className="text-gray-600 text-sm">
-                                      {variavel.descricao}
-                                    </div>
-                                  </div>
+                              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                                <div style={{ height: "300px" }}>
+                                  <Chart
+                                    ref={chartEvolucaoRef}
+                                    type="line"
+                                    data={dadosEvolucao}
+                                    options={opcoesEvolucao}
+                                  />
                                 </div>
-                              ))}
+
+                                <div className="mt-4 text-center text-sm text-gray-600">
+                                  Este gráfico mostra como o valor da função
+                                  objetivo evolui durante o processo de
+                                  otimização até atingir o valor ótimo.
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Gráfico de evolução das variáveis */}
+                            <div>
+                              <h3 className="font-medium text-lg mb-4 text-gray-700 flex items-center">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-5 w-5 mr-2 text-secondary-500"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+                                  />
+                                </svg>
+                                Evolução das Variáveis de Decisão
+                              </h3>
+
+                              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                                <div style={{ height: "300px" }}>
+                                  <Chart
+                                    ref={chartVariaveisRef}
+                                    type="line"
+                                    data={dadosVariaveis}
+                                    options={opcoesVariaveis}
+                                  />
+                                </div>
+
+                                <div className="mt-4 text-center text-sm text-gray-600">
+                                  Este gráfico mostra como os valores das
+                                  variáveis de decisão evoluem durante o
+                                  processo de otimização.
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Informações adicionais sobre o processo de otimização */}
+                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                              <h3 className="font-medium text-blue-800 mb-2 flex items-center">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-5 w-5 mr-2"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                Interpretação dos Gráficos
+                              </h3>
+                              <p className="text-blue-700 mb-3">
+                                Os gráficos acima mostram o caminho percorrido
+                                durante a otimização, desde os valores iniciais
+                                até a solução ótima do problema.
+                              </p>
+                              <ul className="list-disc list-inside text-blue-700 text-sm">
+                                <li className="mb-1">
+                                  No gráfico da função objetivo, observe como o
+                                  valor{" "}
+                                  {funcaoObjetivo.tipo === "max"
+                                    ? "aumenta"
+                                    : "diminui"}{" "}
+                                  a cada passo, buscando sempre{" "}
+                                  {funcaoObjetivo.tipo === "max"
+                                    ? "maximizar"
+                                    : "minimizar"}{" "}
+                                  o resultado.
+                                </li>
+                                <li className="mb-1">
+                                  No gráfico das variáveis, você pode acompanhar
+                                  como cada variável de decisão se ajusta
+                                  durante o processo de otimização, convergindo
+                                  para seus valores ótimos.
+                                </li>
+                                <li>
+                                  A solução final encontrada é:{" "}
+                                  {variaveis
+                                    .map(
+                                      (v, i) =>
+                                        `${v.nome}=${resultadoOtimo?.valoresOtimos[i]}`
+                                    )
+                                    .join(", ")}{" "}
+                                  com valor da função objetivo ={" "}
+                                  {resultadoOtimo?.valorFuncaoObjetivo}.
+                                </li>
+                              </ul>
                             </div>
                           </div>
-
-                          <div>
-                            <h4 className="font-medium text-primary-600 mb-2">
-                              Objetivo
-                            </h4>
-                            <p className="text-gray-700">
-                              {funcaoObjetivo.tipo === "max"
-                                ? "Maximizar"
-                                : "Minimizar"}{" "}
-                              o valor de {funcaoObjetivo.descricao}.
+                        ) : (
+                          <div className="bg-yellow-50 p-6 rounded-lg border border-yellow-200 text-center">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-12 w-12 mx-auto text-yellow-500 mb-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M13 10V3L4 14h7v7l9-11h-7z"
+                              />
+                            </svg>
+                            <h3 className="text-lg font-medium text-yellow-800 mb-2">
+                              Nenhum dado de evolução disponível
+                            </h3>
+                            <p className="text-yellow-700 mb-4">
+                              Para visualizar a evolução da otimização, utilize
+                              o botão "Simular Otimização" acima.
                             </p>
+                            <motion.button
+                              whileHover={{ scale: 1.03 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={simularOtimizacao}
+                              disabled={animationInProgress}
+                              className={`px-4 py-2 rounded-md flex items-center mx-auto ${
+                                animationInProgress
+                                  ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                                  : "bg-blue-600 hover:bg-blue-700 text-white"
+                              }`}
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5 mr-2"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              </svg>
+                              <span>
+                                {animationInProgress
+                                  ? "Simulando..."
+                                  : "Simular Otimização"}
+                              </span>
+                            </motion.button>
                           </div>
-
-                          <div>
-                            <h4 className="font-medium text-primary-600 mb-2">
-                              Como utilizar o simulador
-                            </h4>
-                            <ul className="list-disc list-inside space-y-2 text-gray-700">
-                              <li>
-                                Use os controles deslizantes para ajustar os
-                                valores das variáveis
-                              </li>
-                              <li>
-                                Observe o impacto na função objetivo e nas
-                                restrições
-                              </li>
-                              <li>
-                                Verifique a viabilidade da solução (se atende a
-                                todas as restrições)
-                              </li>
-                              <li>
-                                Clique em "Simular Otimização" para ver uma
-                                animação do processo de busca da solução ótima
-                              </li>
-                              <li>
-                                Acesse a aba "Gráficos" para visualizar o
-                                atendimento às restrições e a evolução da função
-                                objetivo
-                              </li>
-                              <li>
-                                Clique em "Mostrar Resultado Ótimo" para ver a
-                                solução ideal do problema
-                              </li>
-                            </ul>
-                          </div>
-                        </div>
+                        )}
                       </div>
                     )}
                   </div>

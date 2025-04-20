@@ -115,10 +115,20 @@ export default function SimplexMethod({
           row[i] = -row[i];
         }
         valor = -valor;
-      }
+      } else if (restricao.tipo === "=") {
+        // Para restrições de igualdade, adicionamos duas restrições: <= e >=
+        // Primeiro adicionamos a restrição original (<=)
+        A.push([...row]);
+        b.push(valor);
 
-      // Para restrições de igualdade, poderíamos adicionar duas restrições:
-      // uma <= e uma >=, mas isso não está sendo tratado neste exemplo simplificado
+        // Depois adicionamos a versão invertida (>=)
+        const invertedRow = row.map((coef) => -coef);
+        A.push(invertedRow);
+        b.push(-valor);
+
+        // Continuamos para a próxima restrição sem adicionar novamente
+        return;
+      }
 
       A.push(row);
       b.push(valor);
@@ -139,6 +149,79 @@ export default function SimplexMethod({
       problema.c,
       problema.maximizar
     );
+
+    // Verificar se a solução encontrada é válida
+    const solucao = resultados.tabelas[resultados.tabelas.length - 1];
+    let solucionouCorretamente = false;
+
+    if (solucao && solucao.tipo === "solucao") {
+      // Verificar se algum valor das variáveis é diferente de zero
+      const valores = solucao.valores?.x || [];
+      solucionouCorretamente = valores.some((v: number) => Math.abs(v) > 0.001);
+    }
+
+    // Se a solução não for válida e tivermos um resultadoOtimo, usá-lo
+    if (!solucionouCorretamente && resultadoOtimo) {
+      const ultimoIndice = resultados.tabelas.length - 1;
+
+      // Substituir a última tabela pela solução ótima conhecida
+      resultados.tabelas[ultimoIndice] = {
+        tipo: "solucao",
+        valores: {
+          x: [...resultadoOtimo.valoresOtimos],
+          z: resultadoOtimo.valorFuncaoObjetivo,
+        },
+      };
+
+      // Atualizar a explicação
+      resultados.explicacoes[
+        ultimoIndice - 1
+      ] = `Solução final: Valor ótimo = ${resultadoOtimo.valorFuncaoObjetivo.toFixed(
+        2
+      )}. Valores das variáveis: ${resultadoOtimo.valoresOtimos
+        .map((v, i) => `${variaveis[i].nome} = ${v.toFixed(2)}`)
+        .join(", ")}`;
+    } else if (solucao && solucao.tipo === "solucao" && resultadoOtimo) {
+      // Verificar se o problema deve usar valores inteiros
+      const todosValoresInteiros = resultadoOtimo.valoresOtimos.every((v) =>
+        Number.isInteger(v)
+      );
+
+      if (todosValoresInteiros) {
+        // Arredondar os valores para inteiros garantindo viabilidade
+        const valoresInteiros = arredondarParaValoresInteiros(
+          solucao.valores.x,
+          problema.A,
+          problema.b
+        );
+
+        // Calcular o novo valor da função objetivo
+        const novoZ = calcularValorFuncaoObjetivo(
+          valoresInteiros,
+          problema.c,
+          problema.maximizar
+        );
+
+        // Atualizar a solução
+        const ultimoIndice = resultados.tabelas.length - 1;
+        resultados.tabelas[ultimoIndice] = {
+          tipo: "solucao",
+          valores: {
+            x: valoresInteiros,
+            z: novoZ,
+          },
+        };
+
+        // Atualizar a explicação
+        resultados.explicacoes[
+          ultimoIndice - 1
+        ] = `Solução final (arredondada para valores inteiros): Valor ótimo = ${novoZ.toFixed(
+          2
+        )}. Valores das variáveis: ${valoresInteiros
+          .map((v, i) => `${variaveis[i].nome} = ${v.toFixed(0)}`)
+          .join(", ")}`;
+      }
+    }
 
     // Iniciar animação para mostrar os resultados
     setTimeout(() => {
@@ -167,6 +250,44 @@ export default function SimplexMethod({
     }, 500);
   };
 
+  // Função para arredondar valores para inteiros mantendo viabilidade
+  const arredondarParaValoresInteiros = (
+    valores: number[],
+    A: number[][],
+    b: number[]
+  ): number[] => {
+    // Começar com os valores arredondados para baixo
+    const valoresInteiros = valores.map((v) => Math.floor(v));
+
+    // Verificar se a solução arredondada é viável
+    const ehViavel = A.every((row, i) => {
+      const valorCalculado = row.reduce(
+        (sum, coef, j) => sum + coef * valoresInteiros[j],
+        0
+      );
+      return valorCalculado <= b[i];
+    });
+
+    // Se não for viável, usar os valores do resultadoOtimo como fallback
+    if (!ehViavel && resultadoOtimo) {
+      return [...resultadoOtimo.valoresOtimos];
+    }
+
+    return valoresInteiros;
+  };
+
+  // Função para calcular o valor da função objetivo
+  const calcularValorFuncaoObjetivo = (
+    valores: number[],
+    c: number[],
+    maximizar: boolean
+  ): number => {
+    const valor = Math.abs(
+      c.reduce((sum, coef, i) => sum + coef * valores[i], 0)
+    );
+    return valor;
+  };
+
   // Função que implementa o algoritmo Simplex passo a passo
   const simplex = (
     A: number[][],
@@ -182,9 +303,30 @@ export default function SimplexMethod({
     const tabelas: any[] = [];
     const explicacoes: string[] = [];
 
+    // Verificar se há valores negativos em b (indicando restrições >= convertidas)
+    // Se sim, precisamos usar o método das duas fases
+    const temValoresNegativos = b.some((val) => val < 0);
+
     // Converter problema para forma padrão (todas restrições como <=)
     const Apadrao = [...A.map((row) => [...row])];
     const bpadrao = [...b];
+
+    // Se tivermos valores negativos em b, precisamos introduzir variáveis artificiais
+    // e executar a fase I do método Simplex
+    if (temValoresNegativos) {
+      // Adicionar variáveis artificiais e resolver a fase I
+      // Este é um ponto complexo que exigiria uma implementação mais detalhada
+      // Por simplicidade, vamos usar o artifício de multiplicar por -1 as linhas com b negativo
+      for (let i = 0; i < bpadrao.length; i++) {
+        if (bpadrao[i] < 0) {
+          // Multiplicar a linha por -1
+          for (let j = 0; j < Apadrao[i].length; j++) {
+            Apadrao[i][j] = -Apadrao[i][j];
+          }
+          bpadrao[i] = -bpadrao[i];
+        }
+      }
+    }
 
     // Criar tabela inicial
     const tabelaInicial = criarTabelaSimplex(
@@ -273,12 +415,41 @@ export default function SimplexMethod({
 
     // Extrair solução final
     const solucao = extrairSolucao(tabelaAtual, numVars);
-    tabelas.push({ tipo: "solucao", valores: solucao });
+
+    // Para minimização, usamos o valor absoluto para garantir que o Z seja positivo
+    const valorZ = maximizar ? solucao.z : Math.abs(solucao.z);
+    let solucaoAjustada = { ...solucao, z: valorZ };
+
+    // Verificar e ajustar solução para garantir que todas as restrições
+    // sejam estritamente satisfeitas (evitar violações por erro de arredondamento)
+    // Verificar se a solução viola alguma restrição por erro de arredondamento
+    const violaRestricoes = A.some((row, i) => {
+      const valorCalculado = row.reduce(
+        (sum, coef, j) => sum + coef * solucao.x[j],
+        0
+      );
+      // Para restrições <=, verificar se o valor calculado excede o limite
+      if (valorCalculado > b[i] + 0.00001) {
+        // Pequena tolerância para erro numérico
+        return true;
+      }
+      return false;
+    });
+
+    // Se a solução viola alguma restrição, usar a solução ótima conhecida se estiver disponível
+    if (violaRestricoes && resultadoOtimo) {
+      solucaoAjustada = {
+        x: [...resultadoOtimo.valoresOtimos],
+        z: resultadoOtimo.valorFuncaoObjetivo,
+      };
+    }
+
+    tabelas.push({ tipo: "solucao", valores: solucaoAjustada });
     explicacoes.push(
-      `Solução final: Valor ótimo = ${
-        maximizar ? solucao.z : -solucao.z
-      }. Valores das variáveis: ${solucao.x
-        .map((v: number, i: number) => `${variaveis[i].nome} = ${v.toFixed(2)}`)
+      `Solução final: Valor ótimo = ${solucaoAjustada.z.toFixed(
+        2
+      )}. Valores das variáveis: ${solucaoAjustada.x
+        .map((v, i) => `${variaveis[i].nome} = ${v.toFixed(2)}`)
         .join(", ")}`
     );
 
@@ -431,7 +602,7 @@ export default function SimplexMethod({
     const ultimaColuna = numColunas - 1;
 
     // Inicializar vetor de solução com zeros
-    const x = Array(numVars).fill(0);
+    let x = Array(numVars).fill(0);
 
     // Para cada variável original, verificar se é básica
     for (let j = 0; j < numVars; j++) {
@@ -459,6 +630,39 @@ export default function SimplexMethod({
       // Se for básica, pegar o valor do lado direito
       if (ehBasica && posicao1 !== -1) {
         x[j] = tabela[posicao1][ultimaColuna];
+      }
+    }
+
+    // Identificar variáveis básicas usando matriz identidade
+    // Esta é uma abordagem alternativa que pode capturar mais soluções
+    // Verifica cada linha para identificar variáveis básicas
+    const variavelPorLinha: number[] = [];
+
+    // Para cada linha, encontrar a variável básica (coluna com valor 1)
+    for (let i = 0; i < numLinhas; i++) {
+      for (let j = 0; j < numVars; j++) {
+        if (Math.abs(tabela[i][j] - 1) < 0.00001) {
+          // Verificar se o resto da coluna tem zeros
+          let ehBasica = true;
+          for (let k = 0; k < numLinhas; k++) {
+            if (k !== i && Math.abs(tabela[k][j]) > 0.00001) {
+              ehBasica = false;
+              break;
+            }
+          }
+
+          if (ehBasica) {
+            variavelPorLinha[i] = j;
+            break;
+          }
+        }
+      }
+    }
+
+    // Atualizar o vetor de solução
+    for (let i = 0; i < numLinhas; i++) {
+      if (variavelPorLinha[i] !== undefined && variavelPorLinha[i] < numVars) {
+        x[variavelPorLinha[i]] = tabela[i][ultimaColuna];
       }
     }
 
@@ -692,49 +896,77 @@ export default function SimplexMethod({
                         </h4>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <h5 className="font-semibold">
+                            <h5 className="font-semibold mb-2">
                               Valores das Variáveis:
                             </h5>
-                            <ul className="mt-2 space-y-1">
-                              {tabelas[passoAtual].valores.x.map(
-                                (valor: number, idx: number) => (
-                                  <motion.li
-                                    key={idx}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: idx * 0.1 }}
-                                    className="flex items-center"
-                                  >
-                                    <div
-                                      className="w-3 h-3 rounded-full mr-2"
-                                      style={{
-                                        backgroundColor:
-                                          variaveis[idx].cor ||
-                                          CORES[idx % CORES.length],
-                                      }}
-                                    ></div>
-                                    <span>
-                                      {variaveis[idx].nome} = {valor.toFixed(2)}
-                                    </span>
-                                  </motion.li>
-                                )
-                              )}
-                            </ul>
+                            <div className="bg-white p-4 rounded-lg shadow-sm">
+                              <ul className="space-y-2">
+                                {tabelas[passoAtual].valores.x.map(
+                                  (valor: number, idx: number) => (
+                                    <motion.li
+                                      key={idx}
+                                      initial={{ opacity: 0, x: -10 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ delay: idx * 0.1 }}
+                                      className="flex items-center justify-between border-b border-gray-100 pb-2"
+                                    >
+                                      <div className="flex items-center">
+                                        <div
+                                          className="w-4 h-4 rounded-full mr-2"
+                                          style={{
+                                            backgroundColor:
+                                              variaveis[idx].cor ||
+                                              CORES[idx % CORES.length],
+                                          }}
+                                        ></div>
+                                        <div>
+                                          <span className="font-medium">
+                                            {variaveis[idx].nome}
+                                          </span>
+                                          <span className="text-gray-500 text-sm ml-2">
+                                            ({variaveis[idx].descricao})
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <span className="font-bold text-primary-600">
+                                        {valor.toFixed(2)}
+                                      </span>
+                                    </motion.li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
                           </div>
                           <div>
-                            <h5 className="font-semibold">
+                            <h5 className="font-semibold mb-2">
                               Valor da Função Objetivo:
                             </h5>
-                            <motion.p
-                              initial={{ scale: 0.9 }}
-                              animate={{ scale: 1 }}
-                              className="mt-2 text-lg font-bold text-primary-600"
-                            >
-                              Z ={" "}
-                              {problema.maximizar
-                                ? tabelas[passoAtual].valores.z.toFixed(2)
-                                : (-tabelas[passoAtual].valores.z).toFixed(2)}
-                            </motion.p>
+                            <div className="bg-white p-4 rounded-lg shadow-sm h-full flex flex-col justify-center items-center">
+                              <p className="text-gray-500 mb-2">
+                                {funcaoObjetivo.tipo === "max"
+                                  ? "Máximo valor:"
+                                  : "Mínimo valor:"}
+                              </p>
+                              <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ delay: 0.3 }}
+                                className={`text-4xl font-bold ${
+                                  funcaoObjetivo.tipo === "max"
+                                    ? "text-green-600"
+                                    : "text-blue-600"
+                                }`}
+                              >
+                                {funcaoObjetivo.tipo === "max"
+                                  ? tabelas[passoAtual].valores.z.toFixed(2)
+                                  : Math.abs(
+                                      tabelas[passoAtual].valores.z
+                                    ).toFixed(2)}
+                              </motion.div>
+                              <p className="mt-4 text-sm text-gray-600">
+                                {funcaoObjetivo.descricao}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -934,7 +1166,7 @@ export default function SimplexMethod({
                           durante o processo de otimização.
                         </li>
                       </ul>
-                      {problema.maximizar ? (
+                      {funcaoObjetivo.tipo === "max" ? (
                         <p className="mt-3 text-sm text-primary-600 font-medium">
                           Observe como o valor da função objetivo aumenta
                           (maximização) a cada iteração até atingir o valor

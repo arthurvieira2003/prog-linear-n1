@@ -141,9 +141,27 @@ export default function ProgramacaoLinear({
     return () => clearInterval(intervalo);
   };
 
+  // Verificar se os valores devem ser exibidos como inteiros
+  const mostrarComoInteiros =
+    resultadoOtimo?.valoresOtimos.every((v) => Number.isInteger(v)) || false;
+
+  // Função para formatar valores com base na configuração
+  const formatarValor = (valor: number) => {
+    if (mostrarComoInteiros) {
+      return valor.toFixed(0);
+    }
+    return valor.toFixed(2);
+  };
+
   // Função para atualizar o valor de uma variável
   const atualizarVariavel = (index: number, valor: number) => {
     const novosValores = [...valoresVariaveis];
+
+    // Se estivermos trabalhando com inteiros, arredondar o valor
+    if (mostrarComoInteiros) {
+      valor = Math.round(valor);
+    }
+
     novosValores[index] = valor;
     setValoresVariaveis(novosValores);
 
@@ -165,11 +183,16 @@ export default function ProgramacaoLinear({
         0
       );
 
+      // Aplicar uma pequena margem de tolerância para evitar problemas de arredondamento
+      const MARGEM_TOLERANCIA = 0.001;
+
       if (restricao.tipo === "<=")
-        return valorCalculado <= restricao.valorLimite;
+        return valorCalculado <= restricao.valorLimite + MARGEM_TOLERANCIA;
       if (restricao.tipo === ">=")
-        return valorCalculado >= restricao.valorLimite;
-      return valorCalculado === restricao.valorLimite;
+        return valorCalculado + MARGEM_TOLERANCIA >= restricao.valorLimite;
+      return (
+        Math.abs(valorCalculado - restricao.valorLimite) <= MARGEM_TOLERANCIA
+      );
     });
   };
 
@@ -906,7 +929,9 @@ export default function ProgramacaoLinear({
                                         color: variavel.cor,
                                       }}
                                     >
-                                      {valoresVariaveis[index]}
+                                      {mostrarComoInteiros
+                                        ? valoresVariaveis[index].toFixed(0)
+                                        : valoresVariaveis[index]}
                                     </span>
                                   </div>
                                   <div className="flex items-center">
@@ -1276,10 +1301,12 @@ export default function ProgramacaoLinear({
                                       }}
                                     >
                                       <div
-                                        className="text-lg font-bold"
+                                        className="text-2xl font-bold"
                                         style={{ color: variaveis[index].cor }}
                                       >
-                                        {valor}
+                                        {mostrarComoInteiros
+                                          ? valor.toFixed(0)
+                                          : valor.toFixed(2)}
                                       </div>
                                       <div className="text-xs mt-1 text-gray-600">
                                         {variaveis[index].nome}
@@ -1359,80 +1386,82 @@ export default function ProgramacaoLinear({
                     {/* Aba de Evolução da Otimização */}
                     {aba === "evolucao" && (
                       <div>
-                        {historico.length > 1 ? (
+                        {historico.length > 0 ? (
                           <div className="space-y-8">
-                            {/* Gráfico de evolução da função objetivo */}
-                            <div>
-                              <h3 className="font-medium text-lg mb-4 text-gray-700 flex items-center">
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-5 w-5 mr-2 text-primary-500"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                                  />
-                                </svg>
-                                Evolução da Função Objetivo
-                              </h3>
+                            <div className="grid md:grid-cols-2 gap-8">
+                              {/* Gráfico de evolução da função objetivo */}
+                              <div>
+                                <h3 className="font-medium text-lg mb-4 text-gray-700 flex items-center">
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-5 w-5 mr-2 text-primary-500"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                                    />
+                                  </svg>
+                                  Evolução da Função Objetivo
+                                </h3>
 
-                              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                                <div style={{ height: "300px" }}>
-                                  <Chart
-                                    ref={chartEvolucaoRef}
-                                    type="line"
-                                    data={dadosEvolucao}
-                                    options={opcoesEvolucao}
-                                  />
-                                </div>
+                                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                                  <div style={{ height: "300px" }}>
+                                    <Chart
+                                      ref={chartEvolucaoRef}
+                                      type="line"
+                                      data={dadosEvolucao}
+                                      options={opcoesEvolucao}
+                                    />
+                                  </div>
 
-                                <div className="mt-4 text-center text-sm text-gray-600">
-                                  Este gráfico mostra como o valor da função
-                                  objetivo evolui durante o processo de
-                                  otimização até atingir o valor ótimo.
+                                  <div className="mt-4 text-center text-sm text-gray-600">
+                                    Este gráfico mostra como o valor da função
+                                    objetivo evolui durante o processo de
+                                    otimização até atingir o valor ótimo.
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
-                            {/* Gráfico de evolução das variáveis */}
-                            <div>
-                              <h3 className="font-medium text-lg mb-4 text-gray-700 flex items-center">
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-5 w-5 mr-2 text-secondary-500"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
-                                  />
-                                </svg>
-                                Evolução das Variáveis de Decisão
-                              </h3>
+                              {/* Gráfico de evolução das variáveis */}
+                              <div>
+                                <h3 className="font-medium text-lg mb-4 text-gray-700 flex items-center">
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-5 w-5 mr-2 text-secondary-500"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+                                    />
+                                  </svg>
+                                  Evolução das Variáveis de Decisão
+                                </h3>
 
-                              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                                <div style={{ height: "300px" }}>
-                                  <Chart
-                                    ref={chartVariaveisRef}
-                                    type="line"
-                                    data={dadosVariaveis}
-                                    options={opcoesVariaveis}
-                                  />
-                                </div>
+                                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                                  <div style={{ height: "300px" }}>
+                                    <Chart
+                                      ref={chartVariaveisRef}
+                                      type="line"
+                                      data={dadosVariaveis}
+                                      options={opcoesVariaveis}
+                                    />
+                                  </div>
 
-                                <div className="mt-4 text-center text-sm text-gray-600">
-                                  Este gráfico mostra como os valores das
-                                  variáveis de decisão evoluem durante o
-                                  processo de otimização.
+                                  <div className="mt-4 text-center text-sm text-gray-600">
+                                    Este gráfico mostra como os valores das
+                                    variáveis de decisão evoluem durante o
+                                    processo de otimização.
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -1665,7 +1694,9 @@ export default function ProgramacaoLinear({
                               className="text-2xl font-bold"
                               style={{ color: variaveis[index].cor }}
                             >
-                              {valor}
+                              {mostrarComoInteiros
+                                ? valor.toFixed(0)
+                                : valor.toFixed(2)}
                             </div>
                           </motion.div>
                         ))}

@@ -47,8 +47,8 @@ export default function Problema1() {
   };
 
   const resultadoOtimo = {
-    valoresOtimos: [2.5, 5, 2.5, 0],
-    valorFuncaoObjetivo: 1175,
+    valoresOtimos: [7, 0, 0, 4],
+    valorFuncaoObjetivo: 1200,
   };
 
   const [metodoAtivo, setMetodoAtivo] = useState<"grafico" | "simplex">(

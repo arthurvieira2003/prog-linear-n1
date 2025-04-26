@@ -1,10 +1,7 @@
 "use client";
 
 import Navbar from "../components/Navbar";
-import ProgramacaoLinear from "../components/ProgramacaoLinear";
 import SimplexMethod from "../components/SimplexMethod";
-import { useState } from "react";
-import { motion } from "framer-motion";
 
 export default function Problema1() {
   // Problema da Campanha de Vacinação
@@ -51,63 +48,19 @@ export default function Problema1() {
     valorFuncaoObjetivo: 1200,
   };
 
-  const [metodoAtivo, setMetodoAtivo] = useState<"grafico" | "simplex">(
-    "grafico"
-  );
-
   return (
     <main>
       <Navbar />
       <div className="py-10">
         <div className="container mx-auto px-4">
-          <div className="mb-8 flex justify-center">
-            <div className="bg-white rounded-full shadow-md inline-flex p-1">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setMetodoAtivo("grafico")}
-                className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
-                  metodoAtivo === "grafico"
-                    ? "bg-primary-500 text-white"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                Método Gráfico
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setMetodoAtivo("simplex")}
-                className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
-                  metodoAtivo === "simplex"
-                    ? "bg-primary-500 text-white"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                Método Simplex
-              </motion.button>
-            </div>
-          </div>
-
-          {metodoAtivo === "grafico" ? (
-            <ProgramacaoLinear
-              titulo={titulo}
-              descricao={descricao}
-              variaveis={variaveis}
-              restricoes={restricoes}
-              funcaoObjetivo={funcaoObjetivo}
-              resultadoOtimo={resultadoOtimo}
-            />
-          ) : (
-            <SimplexMethod
-              titulo={titulo}
-              descricao={descricao}
-              variaveis={variaveis}
-              restricoes={restricoes}
-              funcaoObjetivo={funcaoObjetivo}
-              resultadoOtimo={resultadoOtimo}
-            />
-          )}
+          <SimplexMethod
+            titulo={titulo}
+            descricao={descricao}
+            variaveis={variaveis}
+            restricoes={restricoes}
+            funcaoObjetivo={funcaoObjetivo}
+            resultadoOtimo={resultadoOtimo}
+          />
         </div>
       </div>
     </main>

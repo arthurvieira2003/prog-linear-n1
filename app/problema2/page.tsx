@@ -43,8 +43,8 @@ export default function Problema2() {
   };
 
   const resultadoOtimo = {
-    valoresOtimos: [8, 12, 4],
-    valorFuncaoObjetivo: 106000,
+    valoresOtimos: [1, 8, 10],
+    valorFuncaoObjetivo: 90000,
   };
 
   return (

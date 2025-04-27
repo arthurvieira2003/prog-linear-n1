@@ -56,8 +56,8 @@ export default function Problema3() {
   };
 
   const resultadoOtimo = {
-    valoresOtimos: [6, 4.7, 0, 0.3],
-    valorFuncaoObjetivo: 39.94,
+    valoresOtimos: [5.45, 4.55, 0, 0],
+    valorFuncaoObjetivo: 36.36,
   };
 
   return (

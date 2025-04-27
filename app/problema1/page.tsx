@@ -44,8 +44,8 @@ export default function Problema1() {
   };
 
   const resultadoOtimo = {
-    valoresOtimos: [7, 0, 0, 4],
-    valorFuncaoObjetivo: 1200,
+    valoresOtimos: [7.38, 0, 0, 4.34],
+    valorFuncaoObjetivo: 1276.46,
   };
 
   return (

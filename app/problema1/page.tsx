@@ -10,10 +10,34 @@ export default function Problema1() {
     "A Secretaria de Saúde deseja maximizar o total de pessoas vacinadas por dia distribuindo postos móveis em quatro regiões da cidade.";
 
   const variaveis = [
-    { nome: "x₁", descricao: "Postos na Região 1", valor: 0 },
-    { nome: "x₂", descricao: "Postos na Região 2", valor: 0 },
-    { nome: "x₃", descricao: "Postos na Região 3", valor: 0 },
-    { nome: "x₄", descricao: "Postos na Região 4", valor: 0 },
+    {
+      nome: "x₁",
+      descricao: "Postos na Região 1",
+      valor: 0,
+      detalhes:
+        "Número de postos móveis a serem instalados na Região 1. Cada posto vacina em média 120 pessoas/dia.",
+    },
+    {
+      nome: "x₂",
+      descricao: "Postos na Região 2",
+      valor: 0,
+      detalhes:
+        "Número de postos móveis a serem instalados na Região 2. Cada posto vacina em média 100 pessoas/dia.",
+    },
+    {
+      nome: "x₃",
+      descricao: "Postos na Região 3",
+      valor: 0,
+      detalhes:
+        "Número de postos móveis a serem instalados na Região 3. Cada posto vacina em média 150 pessoas/dia.",
+    },
+    {
+      nome: "x₄",
+      descricao: "Postos na Região 4",
+      valor: 0,
+      detalhes:
+        "Número de postos móveis a serem instalados na Região 4. Cada posto vacina em média 90 pessoas/dia.",
+    },
   ];
 
   const restricoes = [
@@ -44,7 +68,7 @@ export default function Problema1() {
   };
 
   const resultadoOtimo = {
-    valoresOtimos: [7.38, 0, 0, 4.34],
+    valoresOtimos: [7.39, 0, 0, 4.35],
     valorFuncaoObjetivo: 1276.46,
   };
 

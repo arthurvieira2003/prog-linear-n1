@@ -10,10 +10,34 @@ export default function Problema3() {
     "Uma nutricionista deseja montar um plano alimentar diário balanceado para ganho de massa muscular com o menor custo possível.";
 
   const variaveis = [
-    { nome: "x₁", descricao: "Porções de peito de frango", valor: 0 },
-    { nome: "x₂", descricao: "Porções de arroz integral", valor: 0 },
-    { nome: "x₃", descricao: "Porções de brócolis", valor: 0 },
-    { nome: "x₄", descricao: "Porções de ovos", valor: 0 },
+    {
+      nome: "x₁",
+      descricao: "Porções de peito de frango",
+      valor: 0,
+      detalhes:
+        "Quantidade de porções de peito de frango na dieta. Cada porção fornece 25g de proteína, 0g de carboidrato e 3g de gordura. Custo: R$5,00 por porção.",
+    },
+    {
+      nome: "x₂",
+      descricao: "Porções de arroz integral",
+      valor: 0,
+      detalhes:
+        "Quantidade de porções de arroz integral na dieta. Cada porção fornece 3g de proteína, 22g de carboidrato e 1g de gordura. Custo: R$2,00 por porção.",
+    },
+    {
+      nome: "x₃",
+      descricao: "Porções de brócolis",
+      valor: 0,
+      detalhes:
+        "Quantidade de porções de brócolis na dieta. Cada porção fornece 2g de proteína, 4g de carboidrato e 0g de gordura. Custo: R$1,50 por porção.",
+    },
+    {
+      nome: "x₄",
+      descricao: "Porções de ovos",
+      valor: 0,
+      detalhes:
+        "Quantidade de porções de ovos na dieta. Cada porção fornece 6g de proteína, 1g de carboidrato e 5g de gordura. Custo: R$1,80 por porção.",
+    },
   ];
 
   const restricoes = [

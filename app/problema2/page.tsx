@@ -10,9 +10,27 @@ export default function Problema2() {
     "O hospital precisa organizar turnos de médicos para três setores (Pronto Atendimento, UTI e Clínica Geral) minimizando os custos totais.";
 
   const variaveis = [
-    { nome: "x₁", descricao: "Médicos no turno da manhã", valor: 0 },
-    { nome: "x₂", descricao: "Médicos no turno da tarde", valor: 0 },
-    { nome: "x₃", descricao: "Médicos no turno da noite", valor: 0 },
+    {
+      nome: "x₁",
+      descricao: "Médicos no turno da manhã",
+      valor: 0,
+      detalhes:
+        "Quantidade de médicos contratados para o turno da manhã. Custo: R$4000 por médico. Cada médico contribui com 20h no PA, 10h na UTI e 10h na Clínica Geral.",
+    },
+    {
+      nome: "x₂",
+      descricao: "Médicos no turno da tarde",
+      valor: 0,
+      detalhes:
+        "Quantidade de médicos contratados para o turno da tarde. Custo: R$4500 por médico. Cada médico contribui com 15h no PA, 20h na UTI e 5h na Clínica Geral.",
+    },
+    {
+      nome: "x₃",
+      descricao: "Médicos no turno da noite",
+      valor: 0,
+      detalhes:
+        "Quantidade de médicos contratados para o turno da noite. Custo: R$5000 por médico. Cada médico contribui com 10h no PA, 15h na UTI e 15h na Clínica Geral.",
+    },
   ];
 
   const restricoes = [

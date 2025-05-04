@@ -10,6 +10,7 @@ type Variavel = {
   descricao: string;
   valor: number;
   cor?: string;
+  detalhes?: string;
 };
 
 type Restricao = {
@@ -38,14 +39,6 @@ type SimplexProps = {
   restricoes: Restricao[];
   funcaoObjetivo: FuncaoObjetivo;
   resultadoOtimo?: ResultadoOtimizacao;
-};
-
-// Tipo para representar uma linha no gráfico 2D
-type Linha2D = {
-  pontos: { x: number; y: number }[];
-  label: string;
-  cor: string;
-  tracejada?: boolean;
 };
 
 // Cores para usar nas visualizações
@@ -77,9 +70,7 @@ export default function SimplexMethod({
     c: number[];
     maximizar: boolean;
   }>({ A: [], b: [], c: [], maximizar: true });
-  const [abaAtiva, setAbaAtiva] = useState<
-    "tabelas" | "graficos" | "regiaoViavel"
-  >("tabelas");
+  const [abaAtiva, setAbaAtiva] = useState<"tabelas" | "graficos">("tabelas");
   const [dadosGraficoFuncao, setDadosGraficoFuncao] = useState<{
     labels: string[];
     valores: number[];
@@ -90,225 +81,13 @@ export default function SimplexMethod({
   }>({ labels: [], datasets: [] });
   const [variaveis, setVariaveis] = useState<Variavel[]>(variaveisIniciais);
 
-  // Novo estado para o gráfico da região viável
-  const [dadosRegiaoViavel, setDadosRegiaoViavel] = useState<{
-    linhasRestricoes: Linha2D[];
-    pontosRegiaoViavel: { x: number; y: number }[];
-    pontoOtimo?: { x: number; y: number };
-    linhaFuncaoObjetivo?: Linha2D;
-  }>({
-    linhasRestricoes: [],
-    pontosRegiaoViavel: [],
-    pontoOtimo: undefined,
-    linhaFuncaoObjetivo: undefined,
-  });
-
   // Refs
   const chartRef = useRef<any>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     // Configurar o problema em forma padrão para o Simplex
     prepararProblema();
-
-    // Gerar dados para o gráfico da região viável
-    if (variaveis.length >= 2) {
-      gerarDadosRegiaoViavel();
-    }
   }, [variaveis, restricoes, funcaoObjetivo]);
-
-  // Efeito para desenhar o gráfico de região viável quando o canvas estiver pronto
-  // ou quando os dados mudarem
-  useEffect(() => {
-    // Desenhar o gráfico da região viável quando os dados estiverem disponíveis
-    if (
-      canvasRef.current &&
-      dadosRegiaoViavel.linhasRestricoes.length > 0 &&
-      abaAtiva === "regiaoViavel"
-    ) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
-
-      if (ctx) {
-        // Ajustar as dimensões do canvas para evitar distorção
-        const displayWidth = canvas.clientWidth;
-        const displayHeight = canvas.clientHeight;
-
-        // Verificar se o canvas precisa ser redimensionado
-        if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
-          canvas.width = displayWidth;
-          canvas.height = displayHeight;
-        }
-
-        desenharRegiaoViavel(ctx, canvas);
-      }
-    }
-  }, [dadosRegiaoViavel, abaAtiva, canvasRef.current]);
-
-  // Função para desenhar a região viável no canvas
-  const desenharRegiaoViavel = (
-    ctx: CanvasRenderingContext2D,
-    canvas: HTMLCanvasElement
-  ) => {
-    // Limpar o canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Definir limites do gráfico
-    const maxX = resultadoOtimo
-      ? Math.max(20, resultadoOtimo.valoresOtimos[0] * 1.5)
-      : 20;
-    const maxY = resultadoOtimo
-      ? Math.max(20, resultadoOtimo.valoresOtimos[1] * 1.5)
-      : 20;
-
-    // Escala e margem
-    const marginX = 50;
-    const marginY = 50;
-    const scaleX = (canvas.width - 2 * marginX) / maxX;
-    const scaleY = (canvas.height - 2 * marginY) / maxY;
-
-    // Função para converter coordenadas lógicas para pixels
-    const logicToPixelX = (x: number) => marginX + x * scaleX;
-    const logicToPixelY = (y: number) => canvas.height - marginY - y * scaleY;
-
-    // Desenhar eixos
-    ctx.beginPath();
-    ctx.strokeStyle = "#000";
-    ctx.lineWidth = 1;
-
-    // Eixo X
-    ctx.moveTo(marginX, canvas.height - marginY);
-    ctx.lineTo(canvas.width - marginX, canvas.height - marginY);
-
-    // Eixo Y
-    ctx.moveTo(marginX, canvas.height - marginY);
-    ctx.lineTo(marginX, marginY);
-
-    ctx.stroke();
-
-    // Desenhar as linhas das restrições
-    dadosRegiaoViavel.linhasRestricoes.forEach((linha) => {
-      ctx.beginPath();
-      ctx.strokeStyle = linha.cor;
-      ctx.lineWidth = 2;
-
-      if (linha.tracejada) {
-        ctx.setLineDash([5, 3]);
-      } else {
-        ctx.setLineDash([]);
-      }
-
-      if (linha.pontos.length > 0) {
-        const primeiroP = linha.pontos[0];
-        ctx.moveTo(logicToPixelX(primeiroP.x), logicToPixelY(primeiroP.y));
-
-        for (let i = 1; i < linha.pontos.length; i++) {
-          const p = linha.pontos[i];
-          ctx.lineTo(logicToPixelX(p.x), logicToPixelY(p.y));
-        }
-
-        ctx.stroke();
-
-        // Adicionar label à linha
-        const posicaoLabel = linha.pontos[Math.floor(linha.pontos.length / 2)];
-        ctx.font = "12px Arial";
-        ctx.fillStyle = linha.cor;
-        ctx.fillText(
-          linha.label,
-          logicToPixelX(posicaoLabel.x) + 5,
-          logicToPixelY(posicaoLabel.y) - 5
-        );
-      }
-    });
-
-    // Desenhar a linha da função objetivo, se disponível
-    if (dadosRegiaoViavel.linhaFuncaoObjetivo) {
-      const linha = dadosRegiaoViavel.linhaFuncaoObjetivo;
-      ctx.beginPath();
-      ctx.strokeStyle = linha.cor;
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 3]);
-
-      if (linha.pontos.length > 0) {
-        const primeiroP = linha.pontos[0];
-        ctx.moveTo(logicToPixelX(primeiroP.x), logicToPixelY(primeiroP.y));
-
-        for (let i = 1; i < linha.pontos.length; i++) {
-          const p = linha.pontos[i];
-          ctx.lineTo(logicToPixelX(p.x), logicToPixelY(p.y));
-        }
-
-        ctx.stroke();
-
-        // Adicionar label
-        const posicaoLabel = linha.pontos[0];
-        ctx.font = "12px Arial";
-        ctx.fillStyle = linha.cor;
-        ctx.fillText(
-          linha.label,
-          logicToPixelX(posicaoLabel.x) + 5,
-          logicToPixelY(posicaoLabel.y) - 5
-        );
-      }
-    }
-
-    // Desenhar o ponto ótimo, se disponível
-    if (dadosRegiaoViavel.pontoOtimo) {
-      const p = dadosRegiaoViavel.pontoOtimo;
-      ctx.beginPath();
-      ctx.fillStyle = "red";
-      ctx.arc(logicToPixelX(p.x), logicToPixelY(p.y), 6, 0, 2 * Math.PI);
-      ctx.fill();
-
-      // Label do ponto ótimo
-      ctx.font = "bold 12px Arial";
-      ctx.fillStyle = "red";
-      ctx.fillText(
-        `Solução Ótima (${p.x.toFixed(1)}, ${p.y.toFixed(1)})`,
-        logicToPixelX(p.x) + 10,
-        logicToPixelY(p.y) - 10
-      );
-    }
-
-    // Desenhar os rótulos dos eixos
-    ctx.font = "14px Arial";
-    ctx.fillStyle = "#000";
-
-    // Eixo X
-    ctx.fillText(
-      `${variaveis[0].nome}`,
-      canvas.width - marginX - 20,
-      canvas.height - marginY + 20
-    );
-
-    // Eixo Y
-    ctx.fillText(`${variaveis[1].nome}`, marginX - 20, marginY - 10);
-
-    // Marcações nos eixos
-    ctx.font = "10px Arial";
-
-    // Eixo X
-    for (let i = 0; i <= maxX; i += 5) {
-      ctx.beginPath();
-      ctx.moveTo(logicToPixelX(i), canvas.height - marginY - 3);
-      ctx.lineTo(logicToPixelX(i), canvas.height - marginY + 3);
-      ctx.stroke();
-      ctx.fillText(
-        i.toString(),
-        logicToPixelX(i) - 3,
-        canvas.height - marginY + 15
-      );
-    }
-
-    // Eixo Y
-    for (let i = 0; i <= maxY; i += 5) {
-      ctx.beginPath();
-      ctx.moveTo(marginX - 3, logicToPixelY(i));
-      ctx.lineTo(marginX + 3, logicToPixelY(i));
-      ctx.stroke();
-      ctx.fillText(i.toString(), marginX - 20, logicToPixelY(i) + 3);
-    }
-  };
 
   const prepararProblema = () => {
     // Converter o problema para a forma padrão do simplex
@@ -368,11 +147,6 @@ export default function SimplexMethod({
     // Reiniciar os dados dos gráficos
     setDadosGraficoFuncao({ labels: [], valores: [] });
     setDadosGraficoVariaveis({ labels: [], datasets: [] });
-
-    // Atualizar região viável se necessário
-    if (variaveis.length >= 2) {
-      gerarDadosRegiaoViavel();
-    }
 
     // Implementar o algoritmo Simplex e registrar os passos
     const resultados = simplex(
@@ -1018,156 +792,6 @@ export default function SimplexMethod({
     },
   };
 
-  // Função para gerar os dados da região viável
-  const gerarDadosRegiaoViavel = () => {
-    // Este gráfico só faz sentido para problemas com pelo menos 2 variáveis
-    if (variaveis.length < 2) return;
-
-    // Para facilitar, vamos visualizar apenas as duas primeiras variáveis
-    // Definir limites do gráfico
-    const maxX = resultadoOtimo
-      ? Math.max(20, resultadoOtimo.valoresOtimos[0] * 1.5)
-      : 20;
-    const maxY = resultadoOtimo
-      ? Math.max(20, resultadoOtimo.valoresOtimos[1] * 1.5)
-      : 20;
-
-    // Linhas das restrições
-    const linhasRestricoes: Linha2D[] = [];
-
-    // Para cada restrição, calcular os pontos de interseção com os eixos
-    restricoes.forEach((restricao, idx) => {
-      // Pegar apenas os dois primeiros coeficientes (para x1 e x2)
-      const a = restricao.coeficientes[0];
-      const b = restricao.coeficientes[1];
-      const c = restricao.valorLimite;
-
-      if (a === 0 && b === 0) return; // Restrição não afeta x1 e x2
-
-      const pontos: { x: number; y: number }[] = [];
-
-      // Pontos de interseção com os eixos
-      if (a !== 0) {
-        // Interseção com o eixo Y (x = 0)
-        pontos.push({ x: 0, y: c / b });
-      }
-
-      if (b !== 0) {
-        // Interseção com o eixo X (y = 0)
-        pontos.push({ x: c / a, y: 0 });
-      }
-
-      // Se a restrição é paralela a um dos eixos
-      if (a === 0) {
-        // Linha horizontal
-        pontos.push({ x: 0, y: c / b });
-        pontos.push({ x: maxX, y: c / b });
-      } else if (b === 0) {
-        // Linha vertical
-        pontos.push({ x: c / a, y: 0 });
-        pontos.push({ x: c / a, y: maxY });
-      }
-
-      // Ordenar pontos para desenhar a linha corretamente
-      pontos.sort((p1, p2) => p1.x - p2.x);
-
-      // Criar a linha da restrição
-      linhasRestricoes.push({
-        pontos,
-        label: `${restricao.descricao}`,
-        cor: restricao.cor || CORES[idx % CORES.length],
-      });
-    });
-
-    // Adicionar as restrições de não-negatividade (x1 >= 0, x2 >= 0)
-    linhasRestricoes.push({
-      pontos: [
-        { x: 0, y: 0 },
-        { x: 0, y: maxY },
-      ],
-      label: "x₁ ≥ 0",
-      cor: "rgba(0, 0, 0, 0.5)",
-      tracejada: true,
-    });
-
-    linhasRestricoes.push({
-      pontos: [
-        { x: 0, y: 0 },
-        { x: maxX, y: 0 },
-      ],
-      label: "x₂ ≥ 0",
-      cor: "rgba(0, 0, 0, 0.5)",
-      tracejada: true,
-    });
-
-    // Calcular vértices da região viável (simplificado para demonstração)
-    const pontosRegiaoViavel: { x: number; y: number }[] = [];
-
-    if (resultadoOtimo) {
-      // Adicionar ponto ótimo
-      pontosRegiaoViavel.push({
-        x: resultadoOtimo.valoresOtimos[0],
-        y: resultadoOtimo.valoresOtimos[1],
-      });
-    }
-
-    // Adicionar a origem como um dos pontos
-    pontosRegiaoViavel.push({ x: 0, y: 0 });
-
-    // Linha da função objetivo
-    const a = funcaoObjetivo.coeficientes[0];
-    const b = funcaoObjetivo.coeficientes[1];
-
-    // Se temos a solução ótima, desenhar a linha da função objetivo passando pelo ponto ótimo
-    if (resultadoOtimo && a !== 0 && b !== 0) {
-      const pontoOtimo = {
-        x: resultadoOtimo.valoresOtimos[0],
-        y: resultadoOtimo.valoresOtimos[1],
-      };
-
-      // Valor da função objetivo no ponto ótimo
-      const z = a * pontoOtimo.x + b * pontoOtimo.y;
-
-      // Calcular dois pontos na linha da função objetivo: z = ax + by
-      const pontos: { x: number; y: number }[] = [];
-
-      // Ponto onde a linha cruza o eixo X
-      pontos.push({ x: z / a, y: 0 });
-
-      // Ponto onde a linha cruza o eixo Y
-      pontos.push({ x: 0, y: z / b });
-
-      // Criar a linha da função objetivo
-      const linhaFuncaoObjetivo: Linha2D = {
-        pontos,
-        label: `${
-          funcaoObjetivo.tipo === "max" ? "Maximizar" : "Minimizar"
-        } Z = ${a}x₁ + ${b}x₂`,
-        cor: "rgba(255, 100, 100, 0.8)",
-      };
-
-      // Atualizar os dados da região viável
-      setDadosRegiaoViavel({
-        linhasRestricoes,
-        pontosRegiaoViavel,
-        pontoOtimo,
-        linhaFuncaoObjetivo,
-      });
-    } else {
-      // Atualizar os dados da região viável sem a linha da função objetivo
-      setDadosRegiaoViavel({
-        linhasRestricoes,
-        pontosRegiaoViavel,
-        pontoOtimo: resultadoOtimo
-          ? {
-              x: resultadoOtimo.valoresOtimos[0],
-              y: resultadoOtimo.valoresOtimos[1],
-            }
-          : undefined,
-      });
-    }
-  };
-
   return (
     <div className="bg-white rounded-xl shadow-xl overflow-hidden">
       <div className="bg-gradient-to-r from-primary-500 to-primary-700 py-6 px-8">
@@ -1205,7 +829,37 @@ export default function SimplexMethod({
               </div>
             </div>
 
-            <div>
+            <div className="mb-4">
+              <span className="font-medium">Variáveis de Decisão:</span>
+              <div className="mt-2 pl-5 space-y-3">
+                {variaveis.map((v, index) => (
+                  <div
+                    key={index}
+                    className="bg-white p-3 rounded-md shadow-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{
+                          backgroundColor: v.cor || CORES[index % CORES.length],
+                        }}
+                      ></div>
+                      <span className="font-medium text-primary-700">
+                        {v.nome}:
+                      </span>
+                      <span>{v.descricao}</span>
+                    </div>
+                    {v.detalhes && (
+                      <div className="mt-1 pl-5 text-sm text-gray-600">
+                        {v.detalhes}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-4">
               <span className="font-medium">Sujeito a:</span>
               <div className="mt-1 pl-5">
                 {restricoes.map((restricao, rIndex) => (
@@ -1225,12 +879,18 @@ export default function SimplexMethod({
                       </span>
                     ))}{" "}
                     {restricao.tipo} {restricao.valorLimite}
+                    <span className="ml-2 text-sm text-gray-600">
+                      ({restricao.descricao})
+                    </span>
                   </div>
                 ))}
 
                 {variaveis.map((v, index) => (
                   <div key={`non-neg-${index}`} className="text-lg">
                     {v.nome} ≥ 0
+                    <span className="ml-2 text-sm text-gray-600">
+                      (Não-negatividade)
+                    </span>
                   </div>
                 ))}
               </div>
@@ -1301,26 +961,6 @@ export default function SimplexMethod({
                       >
                         Evolução do Simplex
                       </button>
-                      {variaveis.length >= 2 && (
-                        <button
-                          onClick={() => {
-                            setAbaAtiva("regiaoViavel");
-                            // Gerar dados da região viável se ainda não foram gerados
-                            if (
-                              dadosRegiaoViavel.linhasRestricoes.length === 0
-                            ) {
-                              gerarDadosRegiaoViavel();
-                            }
-                          }}
-                          className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                            abaAtiva === "regiaoViavel"
-                              ? "border-primary-500 text-primary-600"
-                              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                          }`}
-                        >
-                          Região Viável
-                        </button>
-                      )}
                     </nav>
                   </div>
                 </div>
@@ -1630,48 +1270,7 @@ export default function SimplexMethod({
                       )}
                     </div>
                   </div>
-                ) : (
-                  // Novo conteúdo para o gráfico da região viável
-                  <div className="space-y-8">
-                    {/* Gráfico da região viável para problemas 2D */}
-                    <div className="bg-white p-4 rounded-lg shadow-sm">
-                      <h4 className="font-semibold mb-4 text-center">
-                        Visualização Geométrica do Problema
-                      </h4>
-                      <div className="h-96 relative">
-                        <canvas ref={canvasRef} className="w-full h-full" />
-                      </div>
-
-                      <div className="mt-4 text-sm text-gray-700">
-                        <p>
-                          <strong>Interpretação:</strong> O gráfico acima mostra
-                          a região viável do problema, definida pelas restrições
-                          desenhadas como linhas.
-                          {dadosRegiaoViavel.pontoOtimo && (
-                            <span>
-                              {" "}
-                              O ponto vermelho representa a solução ótima
-                              encontrada pelo método Simplex.
-                            </span>
-                          )}
-                        </p>
-                        <p className="mt-2">
-                          <strong>Nota:</strong> Este gráfico é uma
-                          representação geométrica 2D utilizando apenas as
-                          variáveis {variaveis[0].nome} e {variaveis[1].nome}.
-                          {variaveis.length > 2 && (
-                            <span>
-                              {" "}
-                              Como o problema possui mais de duas variáveis,
-                              esta é uma projeção simplificada do espaço de
-                              soluções.
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                ) : null}
               </motion.div>
             )}
           </AnimatePresence>
@@ -1716,51 +1315,58 @@ export default function SimplexMethod({
                 </h5>
                 <div className="space-y-3">
                   {variaveis.map((variavel, idx) => (
-                    <div key={idx} className="flex items-center">
-                      <div
-                        className="w-3 h-3 rounded-full mr-2"
-                        style={{
-                          backgroundColor:
-                            variavel.cor || CORES[idx % CORES.length],
-                        }}
-                      ></div>
-                      <label className="text-gray-700 w-1/3">
-                        {variavel.nome}:
-                      </label>
-                      <input
-                        type="range"
-                        min="0"
-                        max={
-                          resultadoOtimo
-                            ? Math.max(
-                                20,
-                                resultadoOtimo.valoresOtimos[idx] * 2
-                              )
-                            : 20
-                        }
-                        step="0.1"
-                        value={variavel.valor}
-                        onChange={(e) => {
-                          const novoValor = parseFloat(e.target.value);
-                          const novasVariaveis = [...variaveis];
-                          novasVariaveis[idx].valor = novoValor;
-                          setVariaveis(novasVariaveis);
-                        }}
-                        className="w-1/3 mx-2"
-                      />
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        value={variavel.valor}
-                        onChange={(e) => {
-                          const novoValor = parseFloat(e.target.value) || 0;
-                          const novasVariaveis = [...variaveis];
-                          novasVariaveis[idx].valor = novoValor;
-                          setVariaveis(novasVariaveis);
-                        }}
-                        className="border rounded px-2 py-1 w-20 text-right"
-                      />
+                    <div key={idx} className="flex flex-col">
+                      <div className="flex items-center mb-1">
+                        <div
+                          className="w-3 h-3 rounded-full mr-2"
+                          style={{
+                            backgroundColor:
+                              variavel.cor || CORES[idx % CORES.length],
+                          }}
+                        ></div>
+                        <label className="text-gray-700 w-1/3 font-medium">
+                          {variavel.nome}: {variavel.descricao}
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max={
+                            resultadoOtimo
+                              ? Math.max(
+                                  20,
+                                  resultadoOtimo.valoresOtimos[idx] * 2
+                                )
+                              : 20
+                          }
+                          step="0.1"
+                          value={variavel.valor}
+                          onChange={(e) => {
+                            const novoValor = parseFloat(e.target.value);
+                            const novasVariaveis = [...variaveis];
+                            novasVariaveis[idx].valor = novoValor;
+                            setVariaveis(novasVariaveis);
+                          }}
+                          className="w-1/3 mx-2"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          value={variavel.valor}
+                          onChange={(e) => {
+                            const novoValor = parseFloat(e.target.value) || 0;
+                            const novasVariaveis = [...variaveis];
+                            novasVariaveis[idx].valor = novoValor;
+                            setVariaveis(novasVariaveis);
+                          }}
+                          className="border rounded px-2 py-1 w-20 text-right"
+                        />
+                      </div>
+                      {variavel.detalhes && (
+                        <div className="ml-5 text-xs text-gray-600 mb-2">
+                          {variavel.detalhes}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1777,7 +1383,7 @@ export default function SimplexMethod({
                           (sum, coef, idx) => sum + coef * variaveis[idx].valor,
                           0
                         )
-                        .toFixed(2)}
+                        .toFixed(1)}
                     </p>
                     <p className="text-sm text-gray-500 mt-1">
                       {funcaoObjetivo.descricao}
@@ -1789,7 +1395,7 @@ export default function SimplexMethod({
                   <div className="mt-4 p-3 bg-green-50 border border-green-100 rounded-lg">
                     <p className="text-sm font-medium text-green-800">
                       Valor ótimo:{" "}
-                      {resultadoOtimo.valorFuncaoObjetivo.toFixed(2)}
+                      {resultadoOtimo.valorFuncaoObjetivo.toFixed(1)}
                     </p>
                     <p className="text-xs text-green-600 mt-1">
                       Você está a{" "}
@@ -1818,13 +1424,14 @@ export default function SimplexMethod({
                       (sum, coef, i) => sum + coef * variaveis[i].valor,
                       0
                     );
+                    const tolerancia = 0.1; // Margem de tolerância para evitar falsos positivos
                     const atende =
                       restricao.tipo === "<="
-                        ? valorCalculado <= restricao.valorLimite
+                        ? valorCalculado <= restricao.valorLimite + tolerancia
                         : restricao.tipo === ">="
-                        ? valorCalculado >= restricao.valorLimite
+                        ? valorCalculado >= restricao.valorLimite - tolerancia
                         : Math.abs(valorCalculado - restricao.valorLimite) <
-                          0.001;
+                          tolerancia;
 
                     return (
                       <div
@@ -1861,7 +1468,7 @@ export default function SimplexMethod({
                             ))}
                             {" = "}
                             <span className="font-semibold">
-                              {valorCalculado.toFixed(2)}
+                              {valorCalculado.toFixed(1)}
                             </span>
                           </span>
                           <span className="mx-2">{restricao.tipo}</span>

@@ -218,8 +218,8 @@ export default function Home() {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.3 }}
               >
-                Otimização matemática para solução de problemas complexos com o
-                método Simplex
+                Acadêmicos: Arthur Vieira, Gustavo Costa, Lucas Isreal, Marco
+                Merini e Rafael de Andrade
               </motion.p>
             </motion.div>
           </div>

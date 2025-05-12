@@ -1,6 +1,8 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Inter, Montserrat } from "next/font/google";
+import Image from "next/image";
+import Footer from "./components/Footer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -27,9 +29,10 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body
-        className={`${inter.variable} ${montserrat.variable} font-sans antialiased bg-gray-50 min-h-screen`}
+        className={`${inter.variable} ${montserrat.variable} font-sans antialiased bg-secondary-500 min-h-screen flex flex-col`}
       >
-        {children}
+        <div className="flex-grow">{children}</div>
+        <Footer />
       </body>
     </html>
   );

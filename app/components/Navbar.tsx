@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -20,9 +21,20 @@ export default function Navbar() {
         <div className="flex flex-col md:flex-row justify-between items-center">
           <Link
             href="/"
-            className="text-2xl font-display font-bold text-primary-600 mb-4 md:mb-0"
+            className="flex items-center text-2xl font-display font-bold text-primary-600 mb-4 md:mb-0"
           >
-            Programação Linear
+            <div className="w-14 h-14 mr-3 flex-shrink-0">
+              <img
+                src="/assets/catolica-logo.svg"
+                alt="Logo da Católica"
+                className="w-full h-full"
+                style={{
+                  filter:
+                    "invert(22%) sepia(12%) saturate(6308%) hue-rotate(327deg) brightness(83%) contrast(85%)",
+                }}
+              />
+            </div>
+            <span>Programação Linear</span>
           </Link>
 
           <ul className="flex space-x-8">

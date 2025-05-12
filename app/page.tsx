@@ -85,16 +85,16 @@ export default function Home() {
       description:
         "Organização de turnos para minimizar custos e atender às necessidades de diferentes setores",
       href: "/problema2",
-      color: "secondary",
+      color: "primary",
       icon: (
         <motion.div
           animate={{ y: [0, -5, 0] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           className="grid grid-cols-3 gap-1"
         >
-          <div className="h-7 w-7 bg-secondary-400 rounded"></div>
-          <div className="h-14 w-7 bg-secondary-500 rounded"></div>
-          <div className="h-10 w-7 bg-secondary-600 rounded"></div>
+          <div className="h-7 w-7 bg-primary-400 rounded"></div>
+          <div className="h-14 w-7 bg-primary-600 rounded"></div>
+          <div className="h-10 w-7 bg-primary-500 rounded"></div>
         </motion.div>
       ),
     },
@@ -114,22 +114,22 @@ export default function Home() {
           <motion.div
             animate={{ y: [0, -8, 0] }}
             transition={{ duration: 1.5, delay: 0, repeat: Infinity }}
-            className="w-7 h-7 bg-yellow-500 rounded-full"
+            className="w-7 h-7 bg-primary-300 rounded-full"
           ></motion.div>
           <motion.div
             animate={{ y: [0, -8, 0] }}
             transition={{ duration: 1.5, delay: 0.2, repeat: Infinity }}
-            className="w-7 h-7 bg-green-500 rounded-full"
+            className="w-7 h-7 bg-primary-500 rounded-full"
           ></motion.div>
           <motion.div
             animate={{ y: [0, -8, 0] }}
             transition={{ duration: 1.5, delay: 0.4, repeat: Infinity }}
-            className="w-7 h-7 bg-red-500 rounded-full"
+            className="w-7 h-7 bg-primary-600 rounded-full"
           ></motion.div>
           <motion.div
             animate={{ y: [0, -8, 0] }}
             transition={{ duration: 1.5, delay: 0.6, repeat: Infinity }}
-            className="w-7 h-7 bg-blue-500 rounded-full"
+            className="w-7 h-7 bg-primary-700 rounded-full"
           ></motion.div>
         </motion.div>
       ),
@@ -153,7 +153,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-gray-50 to-gray-100">
+    <main className="min-h-screen flex flex-col bg-secondary-500">
       {/* Partículas de fundo (geradas apenas no cliente) */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         {isLoaded &&
@@ -184,7 +184,7 @@ export default function Home() {
       <div className="flex flex-col md:flex-row h-screen">
         {/* Header lateral (40% da tela) */}
         <header className="relative w-full md:w-5/12 md:h-screen py-10 md:py-0 flex items-center">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary-600/90 to-secondary-600/90"></div>
+          <div className="absolute inset-0 bg-primary-600"></div>
 
           <div className="container mx-auto px-6 relative z-10">
             <motion.div
@@ -193,11 +193,19 @@ export default function Home() {
               transition={{ duration: 0.8, ease: "easeOut" }}
               className="max-w-2xl mx-auto md:mx-0 text-center md:text-left"
             >
+              <div className="flex flex-col items-center md:items-start mb-6">
+                <img
+                  src="/assets/catolica-logo.svg"
+                  alt="Logo da Católica"
+                  className="h-36 md:h-48 mb-6 filter brightness-0 invert"
+                  style={{ maxWidth: "100%" }}
+                />
+              </div>
               <h1 className="text-4xl md:text-5xl font-display font-bold mb-4 text-white">
                 <span className="relative">
                   <span className="relative z-10">Programação Linear</span>
                   <motion.span
-                    className="absolute bottom-1 left-0 right-0 h-3 bg-secondary-400/30 z-0 rounded-full"
+                    className="absolute bottom-1 left-0 right-0 h-3 bg-white/30 z-0 rounded-full"
                     initial={{ width: 0 }}
                     animate={{ width: "100%" }}
                     transition={{ duration: 1.5, delay: 0.5 }}
@@ -244,7 +252,7 @@ export default function Home() {
                       transition: { duration: 0.2 },
                     }}
                     className={`card bg-white shadow-md rounded-xl overflow-hidden ${
-                      activeIndex === index ? "ring-2 ring-primary-400/80" : ""
+                      activeIndex === index ? "ring-2 ring-primary-500" : ""
                     }`}
                   >
                     {/* Conteúdo do card */}
@@ -253,7 +261,7 @@ export default function Home() {
                         {card.icon}
                       </div>
 
-                      <h3 className="text-lg font-semibold mb-2">
+                      <h3 className="text-lg font-semibold mb-2 text-primary-600">
                         {card.title}
                       </h3>
                       <p className="text-gray-600 mb-6 text-sm flex-grow">
@@ -262,12 +270,7 @@ export default function Home() {
 
                       <Link href={card.href} className="mt-auto">
                         <motion.span
-                          className={`inline-flex items-center px-4 py-2 rounded-lg text-white
-                            ${
-                              card.color === "primary"
-                                ? "bg-primary-600 hover:bg-primary-700"
-                                : "bg-secondary-600 hover:bg-secondary-700"
-                            }`}
+                          className="inline-flex items-center px-4 py-2 rounded-lg text-white bg-primary-600 hover:bg-primary-700"
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                         >

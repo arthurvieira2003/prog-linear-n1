@@ -75,6 +75,21 @@ export default function Problema1() {
   return (
     <main>
       <Navbar />
+      <div className="bg-gradient-to-r from-primary-600 to-primary-700 py-4">
+        <div className="container mx-auto px-4 flex items-center justify-between">
+          <h1 className="text-white text-xl font-semibold">
+            Problema 1: {titulo}
+          </h1>
+          <div className="flex items-center">
+            <img
+              src="/assets/catolica-logo.svg"
+              alt="Logo da Católica"
+              className="h-12 filter brightness-0 invert"
+              style={{ maxWidth: "100%" }}
+            />
+          </div>
+        </div>
+      </div>
       <div className="py-10">
         <div className="container mx-auto px-4">
           <SimplexMethod

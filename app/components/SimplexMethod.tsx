@@ -43,12 +43,12 @@ type SimplexProps = {
 
 // Cores para usar nas visualizações
 const CORES = [
-  "rgb(59, 130, 246)", // Azul
-  "rgb(16, 185, 129)", // Verde
-  "rgb(239, 68, 68)", // Vermelho
-  "rgb(245, 158, 11)", // Amarelo
-  "rgb(139, 92, 246)", // Roxo
-  "rgb(236, 72, 153)", // Rosa
+  "#973641", // Bordô (cor principal)
+  "#d4a9ad", // Versão mais clara do bordô
+  "#621e26", // Versão mais escura do bordô
+  "#973641", // Bordô (repetido para manter o padrão)
+  "#d4a9ad", // Versão mais clara (repetido)
+  "#621e26", // Versão mais escura (repetido)
 ];
 
 export default function SimplexMethod({
